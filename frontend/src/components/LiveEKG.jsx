@@ -7,9 +7,8 @@ export default function LiveEKG({ rawData }) {
   const [speed, setSpeed] = useState(2); // Speed multiplier
   const intervalRef = useRef(null);
   const indexRef = useRef(0);
-  const WINDOW_SIZE = 1500; // Much larger window for comprehensive EKG view
+  const WINDOW_SIZE = 1500;
 
-  // Clean up intervals when component unmounts
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
@@ -18,7 +17,6 @@ export default function LiveEKG({ rawData }) {
     };
   }, []);
 
-  // Reset when new data is provided
   useEffect(() => {
     if (rawData.length > 0) {
       stopAnimation();
@@ -40,7 +38,6 @@ export default function LiveEKG({ rawData }) {
         return;
       }
 
-      // Process multiple points at once for faster animation
       const batchSize = speed; // Use speed as batch size
       const batch = [];
       
@@ -55,11 +52,10 @@ export default function LiveEKG({ rawData }) {
       if (batch.length > 0) {
         setDisplayData((prev) => {
           const updated = [...prev, ...batch];
-          // Keep sliding window
           return updated.length > WINDOW_SIZE ? updated.slice(-WINDOW_SIZE) : updated;
         });
       }
-    }, 30); // Faster interval - 30ms
+    }, 30);
   };
 
   const stopAnimation = () => {
