@@ -25,7 +25,6 @@ def predict():
         if not file or not file.filename:
             return jsonify({"error": "No file provided"}), 400
             
-        # Use the actual model to get a random prediction
         prediction = model.predict(file)
         return jsonify({"prediction": prediction})
     except Exception as e:

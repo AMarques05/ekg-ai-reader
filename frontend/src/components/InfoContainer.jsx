@@ -5,9 +5,12 @@ import Papa from 'papaparse';
 function InfoContainer({ setData }){
 
     const [file, setFile] = useState()
+    const [prediction, setPrediction] = useState();
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
+        setFile(file);
+
         Papa.parse(file, {
         header: true,
         dynamicTyping: true,
@@ -17,6 +20,31 @@ function InfoContainer({ setData }){
         },
         });
     };
+
+    async function sendFile(){
+        if(!file){
+            console.log("No file Selected");
+            return;
+        }
+
+        console.log("Sending Data To Backend...");
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try{
+            const response = await fetch('http://localhost:5000/ekg/predict', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            console.log('Prediction: ', result.prediction);
+            setPrediction(result.prediction);
+        }catch(error) {
+            console.log('Error: ', error);
+        }
+    }
 
 
     return(
@@ -35,10 +63,10 @@ function InfoContainer({ setData }){
                     </label>
                 </div>              
                 <button className = "h-1/5 w-full border-2 rounded border-blue-600 bg-blue-300 text-blue-600 transition-all duration-300 ease-in-out hover:scale-105 hover:bg-blue-600 hover:text-white"
-                    onClick={() => console.log('Process clicked')}>
+                    onClick={sendFile}>
                     Process
                 </button>                
-                <Result />
+                <Result prediction={prediction} />
         </div>
     )
 }
