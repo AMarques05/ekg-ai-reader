@@ -3,7 +3,7 @@ import joblib
 
 class DemoModel:
     def __init__(self):
-        self.labels = ["Normal", "AFib", "PVC", "Other"]
+        self.labels = ["Normal", "AFib", "PVC", "Bradycardia","Other"]
 
     def predict(self, ekg_csv):
         return random.choice(self.labels)

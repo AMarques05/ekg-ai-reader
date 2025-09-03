@@ -2,7 +2,7 @@ import Result from './Result';
 import React, {useState} from 'react';
 import Papa from 'papaparse';
 
-function InfoContainer({ setData }){
+function InfoContainer({ setData , onPredict}){
 
     const [file, setFile] = useState()
     const [prediction, setPrediction] = useState();
@@ -41,6 +41,7 @@ function InfoContainer({ setData }){
             const result = await response.json();
             console.log('Prediction: ', result.prediction);
             setPrediction(result.prediction);
+            onPredict(result.prediction);
         }catch(error) {
             console.log('Error: ', error);
         }
