@@ -3,23 +3,18 @@ from tensorflow.keras import layers, models
 
 
 def build_autoencoder(input_len):
-    """
-    Build a simple Conv1D autoencoder for EKG windows.
-    
-    input_len: number of samples in one window (e.g., 500 for 2s at 250Hz)
-    """
     inp = layers.Input(shape=(input_len, 1))
 
-    # Encoder
+    # Encoder (Breaks down our beat)
     x = layers.Conv1D(32, 7, activation='relu', padding='same')(inp)
     x = layers.MaxPooling1D(2)(x)
     x = layers.Conv1D(16, 7, activation='relu', padding='same')(x)
     x = layers.MaxPooling1D(2)(x)
 
-    # Latent space
+    # Latent space ("Summary" of what our beat looks like)
     x = layers.Conv1D(8, 7, activation='relu', padding='same')(x)
 
-    # Decoder
+    # Decoder (Reconstructs the beat back to "normal" returning either high or low reconstruction error)
     x = layers.UpSampling1D(2)(x)
     x = layers.Conv1D(16, 7, activation='relu', padding='same')(x)
     x = layers.UpSampling1D(2)(x)
