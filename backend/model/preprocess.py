@@ -25,3 +25,10 @@ def resample_to(signal, fs_in, fs_out=250):
     n_out = int(len(signal) * fs_out / fs_in)
     return resample(signal, n_out), fs_out
 
+def make_windows_fixed(signal, fs, win_sec=2.0, step_sec=1.0):
+    win = int(win_sec * fs)     
+    step = int(step_sec * fs)
+    windows = []
+    for start in range(0, len(signal) - win + 1, step):
+        windows.append(signal[start:start+win])
+    return np.array(windows)
