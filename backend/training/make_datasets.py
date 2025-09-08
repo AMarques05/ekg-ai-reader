@@ -38,3 +38,13 @@ def save_datasets(csv_path, out_train="data/processed/X_train.npy", out_val="dat
     np.save(out_train, X_train)
     np.save(out_val, X_val)
     print(f"Saved {X_train.shape[0]} train windows and {X_val.shape[0]} val windows.")
+
+if __name__ == "__main__":
+    # Example: load one demo CSV
+    csv_path = "backend/data/processed/demo_ekg.csv"   
+
+    save_datasets(
+        csv_path,
+        out_train="backend/data/processed/X_train.npy",
+        out_val="backend/data/processed/X_val.npy"
+    )
