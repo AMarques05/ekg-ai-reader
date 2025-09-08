@@ -19,7 +19,7 @@ def train_autoencoder(X_train, X_val, save_path="models/autoencoder.h5"):
 
     # Fit the model: input = X, target = X (reconstruction)
     history = model.fit(
-        X_train, X_train,              # input and output are the same
+        X_train, X_train,              
         validation_data=(X_val, X_val),
         epochs=50,
         batch_size=128,
@@ -30,5 +30,11 @@ def train_autoencoder(X_train, X_val, save_path="models/autoencoder.h5"):
     # Save trained model
     model.save(save_path)
     print(f"Model saved to {save_path}")
+
+    if __name__ == "__main__":
+        X_train = np.load("data/processed/X_train.npy")
+        X_val   = np.load("data/processed/X_val.npy")
+
+    history = train_autoencoder(X_train, X_val)
 
     return history
