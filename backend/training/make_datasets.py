@@ -41,7 +41,7 @@ def save_datasets(csv_path, out_train="data/processed/X_train.npy", out_val="dat
 
 if __name__ == "__main__":
     # Example: load one demo CSV
-    csv_path = "backend/data/processed/demo_ekg.csv"   
+    csv_path = "backend/data/processed/demo_ekg_long.csv"   
 
     save_datasets(
         csv_path,
