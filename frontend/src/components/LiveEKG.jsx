@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 export default function LiveEKG({ rawData }) {
   const [displayData, setDisplayData] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(2); // Speed multiplier
+  const [speed, setSpeed] = useState(2);
   const intervalRef = useRef(null);
   const indexRef = useRef(0);
   const WINDOW_SIZE = 1500;
@@ -20,8 +20,10 @@ export default function LiveEKG({ rawData }) {
   useEffect(() => {
     if (rawData.length > 0) {
       stopAnimation();
-      setDisplayData([]);
+      setDisplayData(rawData);
       indexRef.current = 0;
+      console.log("Data loaded:", rawData.length, "points");
+      console.log("Sample row:", rawData[0]);
     }
   }, [rawData]);
 
@@ -81,6 +83,12 @@ export default function LiveEKG({ rawData }) {
         <p className="text-gray-400">No data yet. Upload a CSV file!</p>
       </div>
     );
+  }
+
+  // Debug: Check if displayData has the right structure
+  console.log("displayData length:", displayData.length);
+  if (displayData.length > 0) {
+    console.log("First displayData row:", displayData[0]);
   }
 
   return (
@@ -149,19 +157,11 @@ export default function LiveEKG({ rawData }) {
           data={[
             {
               x: displayData.map((row) => row["Time(ms)"]),
-              y: displayData.map((row) => row["Lead_I"]),
+              y: displayData.map((row) => row["value"]),
               type: "scatter",
               mode: "lines",
-              name: "Lead I",
+              name: "Value",
               line: { color: "#10B981", width: 2 },
-            },
-            {
-              x: displayData.map((row) => row["Time(ms)"]),
-              y: displayData.map((row) => row["Lead_II"]),
-              type: "scatter",
-              mode: "lines",
-              name: "Lead II",
-              line: { color: "#34D399", width: 2 },
             },
           ]}
           layout={{
@@ -181,7 +181,7 @@ export default function LiveEKG({ rawData }) {
               rangeslider: { visible: false }, // Remove range slider for more space
             },
             yaxis: { 
-              title: "Voltage (mV)",
+              title: "Value",
               titlefont: { color: "#9CA3AF", size: 12 },
               tickfont: { color: "#9CA3AF", size: 10 },
               gridcolor: "#4B5563",
@@ -195,7 +195,7 @@ export default function LiveEKG({ rawData }) {
             },
             margin: { t: 40, r: 15, b: 40, l: 45 }, // Optimized margins for more chart space
             autosize: true,
-            showlegend: true,
+            showlegend: false,
             hovermode: 'closest',
             dragmode: 'zoom', // Default to zoom mode
             width: null, // Let it use full container width

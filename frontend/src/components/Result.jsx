@@ -21,6 +21,8 @@ function Result({prediction}){
                 return 'border-green-500 bg-green-200 text-green-500';
             case 'afib':
                 return 'border-red-500 bg-red-200 text-red-500';
+            case 'abnormal':
+                return 'border-red-500 bg-red-200 text-red-500';
             case 'pvc':
                 return 'border-orange-500 bg-orange-200 text-orange-500';
             case 'bradycardia':

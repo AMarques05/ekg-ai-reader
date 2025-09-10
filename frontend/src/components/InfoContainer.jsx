@@ -15,8 +15,38 @@ function InfoContainer({ setData , onPredict}){
         header: true,
         dynamicTyping: true,
         complete: (results) => {
-            const parsed = results.data.filter((row) => row["Time(ms)"]);
-            setData(parsed);
+            console.log("Papa.parse results:", results); // Debug log
+            
+            // Keep rows that have a time value - handle multiple time column names
+            const parsed = results.data.filter((row) => {
+                if (!row) return false;
+                const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
+                return timeValue !== undefined && timeValue !== null;
+            });
+            console.log("Parsed rows with time column:", parsed.length); // Debug log
+
+            // Normalize to always provide 'Time(ms)' and 'value' keys for the chart
+            const normalized = parsed
+                .map((row) => {
+                    // Get time value from various possible column names
+                    const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
+                    // Get signal value from various possible column names
+                    const v = row.value ?? row.Value ?? row["Lead_I"] ?? row["Lead II"] ?? row["Lead_II"] ?? row["Voltage"] ?? row["ECG"];
+                    return {
+                        "Time(ms)": typeof timeValue === 'string' ? Number(timeValue) : timeValue,
+                        value: typeof v === 'string' ? Number(v) : v,
+                    };
+                })
+                .filter((r) => {
+                    return r["Time(ms)"] !== undefined && r["Time(ms)"] !== null && !Number.isNaN(r["Time(ms)"]) &&
+                           r.value !== undefined && r.value !== null && !Number.isNaN(r.value);
+                });
+
+            console.log("Normalized data:", normalized.length, "rows"); // Debug log
+            if (normalized.length > 0) {
+                console.log("First normalized row:", normalized[0]); // Debug log
+            }
+            setData(normalized);
         },
         });
     };
@@ -38,10 +68,14 @@ function InfoContainer({ setData , onPredict}){
                 body: formData,
             });
 
-            const result = await response.json();
-            console.log('Prediction: ', result.prediction);
-            setPrediction(result.prediction);
-            onPredict(result.prediction);
+            const data = await response.json();
+            if (!response.ok) {
+                console.log('Backend error:', data);
+                return;
+            }
+            console.log('Result: ', data.result, 'MSE:', data.reconstruction_error);
+            setPrediction(data.result);
+            onPredict(data.result);
         }catch(error) {
             console.log('Error: ', error);
         }
@@ -56,7 +90,7 @@ function InfoContainer({ setData , onPredict}){
                         <input 
                             id="file-input"
                             type="file" 
-                            accept=".csv"
+                            accept=".csv,.ekg,.txt"
                             className="hidden"
                             onChange={handleFileUpload}
                         />

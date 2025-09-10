@@ -8,6 +8,11 @@ function AppContainer(){
   const [rawData, setData] = useState([]);
   const [pastTests, setPastTests] = useState([]);
 
+  // Debug: Log when rawData changes
+  React.useEffect(() => {
+    console.log("AppContainer rawData updated:", rawData.length, "rows");
+  }, [rawData]);
+
   function updateTests(prediction) {
         const newTest = {
             id: Date.now(),

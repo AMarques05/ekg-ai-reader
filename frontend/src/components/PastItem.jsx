@@ -24,6 +24,8 @@ function PastItem({prediction}){
                 return 'border-orange-500 bg-orange-200 text-orange-800';
             case 'bradycardia':
                 return 'border-orange-500 bg-orange-200 text-orange-800';
+            case 'abnormal':
+                return 'border-red-500 bg-red-200 text-red-500';
             default:
                 return 'border-gray-500 bg-gray-200 text-gray-800';
         }
