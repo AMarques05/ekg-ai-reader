@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 from backend.model import preprocess
 from sklearn.model_selection import train_test_split
 
@@ -40,8 +41,17 @@ def save_datasets(csv_path, out_train="data/processed/X_train.npy", out_val="dat
     print(f"Saved {X_train.shape[0]} train windows and {X_val.shape[0]} val windows.")
 
 if __name__ == "__main__":
-    # Example: load one demo CSV
-    csv_path = "backend/data/processed/demo_ekg_long.csv"   
+    # Use MIT-BIH Normal Sinus Rhythm data instead of demo data
+    csv_path = "backend/data/processed/mitbih_normal.csv"   
+
+    # Check if MIT-BIH data exists, if not provide instructions
+    if not os.path.exists(csv_path):
+        print(f"MIT-BIH training data not found at: {csv_path}")
+        print("Please run the download script first:")
+        print("  cd backend/data")
+        print("  python download_mitbih.py")
+        print("\nThis will download Normal Sinus Rhythm records from MIT-BIH database")
+        exit(1)
 
     save_datasets(
         csv_path,
