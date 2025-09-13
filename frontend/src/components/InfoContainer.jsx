@@ -23,30 +23,29 @@ function InfoContainer({ setData , onPredict}){
                 complete: (results) => {
                     console.log("Papa.parse results:", results); // Debug log
                     
-                    // Keep rows that have a time value - handle multiple time column names
-                    const parsed = results.data.filter((row) => {
-                        if (!row) return false;
-                        const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
-                        return timeValue !== undefined && timeValue !== null;
-                    });
-                    console.log("Parsed rows with time column:", parsed.length); // Debug log
+                    const rows = results.data.filter(Boolean);
+
+                    // Detect columns
+                    const hasTime = rows.some((row) => (row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"]) !== undefined);
+                    const hasValue = rows.some((row) => (row.value ?? row.Value ?? row["Lead_I"] ?? row["Lead II"] ?? row["Lead_II"] ?? row["Voltage"] ?? row["ECG"]) !== undefined);
 
                     // Normalize to always provide 'Time(ms)' and 'value' keys for the chart
-                    const normalized = parsed
-                        .map((row) => {
-                            // Get time value from various possible column names
-                            const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
-                            // Get signal value from various possible column names
+                    let normalized = [];
+                    const fs = 250; // default sampling rate if time missing
+                    if (hasValue) {
+                        let idx = 0;
+                        for (const row of rows) {
+                            const t = hasTime ? (row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"]) : (idx * 1000 / fs);
                             const v = row.value ?? row.Value ?? row["Lead_I"] ?? row["Lead II"] ?? row["Lead_II"] ?? row["Voltage"] ?? row["ECG"];
-                            return {
-                                "Time(ms)": typeof timeValue === 'string' ? Number(timeValue) : timeValue,
-                                value: typeof v === 'string' ? Number(v) : v,
-                            };
-                        })
-                        .filter((r) => {
-                            return r["Time(ms)"] !== undefined && r["Time(ms)"] !== null && !Number.isNaN(r["Time(ms)"]) &&
-                                   r.value !== undefined && r.value !== null && !Number.isNaN(r.value);
-                        });
+                            const timeNum = typeof t === 'string' ? Number(t) : t;
+                            const valNum = typeof v === 'string' ? Number(v) : v;
+                            if (timeNum !== undefined && timeNum !== null && !Number.isNaN(timeNum) &&
+                                valNum !== undefined && valNum !== null && !Number.isNaN(valNum)) {
+                                normalized.push({ "Time(ms)": timeNum, value: valNum });
+                                idx += 1;
+                            }
+                        }
+                    }
 
                     console.log("Normalized data:", normalized.length, "rows"); // Debug log
                     if (normalized.length > 0) {
@@ -79,7 +78,7 @@ function InfoContainer({ setData , onPredict}){
         formData.append('file', file);
 
         try{
-            const response = await fetch('http://localhost:5000/ekg/predict', {
+            const response = await fetch('http://localhost:5000/ekg/predict?use_hybrid=true&include_plot=true&threshold=0.00012', {
                 method: 'POST',
                 body: formData,
             });
@@ -91,6 +90,9 @@ function InfoContainer({ setData , onPredict}){
             }
             console.log('Result: ', data.result, 'MSE:', data.reconstruction_error);
             setPrediction(data.result);
+            if (Array.isArray(data.plot)) {
+                setData(data.plot);
+            }
             onPredict(data.result);
         }catch(error) {
             console.log('Error: ', error);

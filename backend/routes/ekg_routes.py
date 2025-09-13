@@ -66,7 +66,7 @@ def feature_autocorr_peak(sig: np.ndarray, fs: int = 250, min_bpm: int = 50, max
     return float(np.max(ac[min_lag:max_lag]))
 
 
-def predict_from_values(values: np.ndarray, threshold: float = 0.00012, use_hybrid: bool = False) -> dict:
+def predict_from_values(values: np.ndarray, threshold: float = 0.00012, use_hybrid: bool = False, return_signal: bool = False) -> dict:
     """Core prediction logic used by the HTTP route and by local evaluators."""
     fs_in = 250
     sig, fs = preprocess.resample_to(values, fs_in, 250)
@@ -102,7 +102,7 @@ def predict_from_values(values: np.ndarray, threshold: float = 0.00012, use_hybr
                 result = "abnormal"
                 flags.append("AC")
 
-    return {
+    out = {
         "result": result,
         "reconstruction_error": avg_mse,
         "threshold": threshold,
@@ -111,6 +111,12 @@ def predict_from_values(values: np.ndarray, threshold: float = 0.00012, use_hybr
         "flags": flags,
         "hybrid": bool(use_hybrid),
     }
+
+    if return_signal:
+        out["_sig_filtered"] = sig_filtered.astype(float).tolist()
+        out["_fs"] = int(fs)
+
+    return out
 
 def parse_file_data(file):
     """
@@ -220,27 +226,47 @@ def predict():
             return jsonify({"error": "No file provided"}), 400
 
         try:
-            threshold = float(request.args.get("threshold", 0.00012))  # Optimal threshold based on analysis
+            threshold = float(request.args.get("threshold", 0.00012))
         except ValueError:
             return jsonify({"error": "Invalid threshold value"}), 400
 
         use_hybrid = str(request.args.get("use_hybrid", "false")).lower() in ("1", "true", "yes")
+        include_plot = str(request.args.get("include_plot", "false")).lower() in ("1", "true", "yes")
 
         # Parse file data using new multi-format parser
         values, error = parse_file_data(file)
         if error:
             return jsonify({"error": error}), 400
 
-        if len(values) < 500:  # Need at least 2 seconds at 250 Hz
+        if len(values) < 500:
             return jsonify({"error": "Signal too short - need at least 500 samples (2 seconds at 250 Hz)"}), 400
 
         # Use shared prediction logic (optionally hybrid)
-        out = predict_from_values(values, threshold=threshold, use_hybrid=use_hybrid)
+        out = predict_from_values(values, threshold=threshold, use_hybrid=use_hybrid, return_signal=include_plot)
 
-        return jsonify({
+        response = {
             **out,
             "file_format": file.filename.split('.')[-1].upper(),
-        })
+        }
+
+        # Optionally include a compact, graph-ready series
+        if include_plot and "_sig_filtered" in out and "_fs" in out:
+            sig_list = out["_sig_filtered"]
+            fs = out["_fs"]
+            n = len(sig_list)
+            max_points = 5000
+            step = max(1, n // max_points) if n > max_points else 1
+            plot = []
+            for i in range(0, n, step):
+                t_ms = int(round(i * 1000.0 / fs))
+                plot.append({"Time(ms)": t_ms, "value": float(sig_list[i])})
+            response["plot"] = plot
+
+            # Clean internal debug fields
+            response.pop("_sig_filtered", None)
+            response.pop("_fs", None)
+
+        return jsonify(response)
     except FileNotFoundError as e:
         return jsonify({"error": str(e)}), 500
     except Exception as e:
