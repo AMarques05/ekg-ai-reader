@@ -1,0 +1,125 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# MIT-BIH Training Data (Hide large datasets)
+backend/data/raw/
+backend/data/processed/mitbih_normal.csv
+backend/data/processed/X_train.npy
+backend/data/processed/X_val.npy
+backend/data/processed/demo_ekg_long.csv
+backend/data/test_data/
+
+# MIT-BIH downloaded files
+backend/data/*.dat
+backend/data/*.hea
+backend/data/*.atr
+backend/data/100.*
+backend/data/101.*
+backend/data/103.*
+backend/data/105.*
+backend/data/111.*
+backend/data/113.*
+backend/data/115.*
+backend/data/117.*
+backend/data/121.*
+backend/data/123.*
+
+# Training utilities (hide training scripts but keep core model files)
+backend/data/download_mitbih.py
+backend/data/create_test_data.py
+backend/training/make_datasets.py
+setup_mitbih_training.sh
+
+# Trained models (keep the final model but hide training artifacts)
+backend/models/autoencoder.h5
+backend/models/*.keras
+backend/models/*.pkl
+
+# Node modules and build artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Frontend build files
+frontend/build/
+frontend/dist/
+frontend/.next/
+
+# Dependencies
+package-lock.json
+yarn.lock
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Large CSV files (except demo)
+*.csv
+!backend/data/processed/demo_ekg.csv
+
+# Jupyter notebooks (if any)
+*.ipynb
+.ipynb_checkpoints/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
