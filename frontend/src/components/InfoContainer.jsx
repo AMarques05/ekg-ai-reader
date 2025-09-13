@@ -11,44 +11,60 @@ function InfoContainer({ setData , onPredict}){
         const file = e.target.files[0];
         setFile(file);
 
-        Papa.parse(file, {
-        header: true,
-        dynamicTyping: true,
-        complete: (results) => {
-            console.log("Papa.parse results:", results); // Debug log
-            
-            // Keep rows that have a time value - handle multiple time column names
-            const parsed = results.data.filter((row) => {
-                if (!row) return false;
-                const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
-                return timeValue !== undefined && timeValue !== null;
+        // Check file type and handle accordingly
+        const fileName = file.name.toLowerCase();
+        const fileExtension = fileName.split('.').pop();
+
+        // For CSV files, use Papa Parse for preview (existing functionality)
+        if (fileExtension === 'csv') {
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                complete: (results) => {
+                    console.log("Papa.parse results:", results); // Debug log
+                    
+                    // Keep rows that have a time value - handle multiple time column names
+                    const parsed = results.data.filter((row) => {
+                        if (!row) return false;
+                        const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
+                        return timeValue !== undefined && timeValue !== null;
+                    });
+                    console.log("Parsed rows with time column:", parsed.length); // Debug log
+
+                    // Normalize to always provide 'Time(ms)' and 'value' keys for the chart
+                    const normalized = parsed
+                        .map((row) => {
+                            // Get time value from various possible column names
+                            const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
+                            // Get signal value from various possible column names
+                            const v = row.value ?? row.Value ?? row["Lead_I"] ?? row["Lead II"] ?? row["Lead_II"] ?? row["Voltage"] ?? row["ECG"];
+                            return {
+                                "Time(ms)": typeof timeValue === 'string' ? Number(timeValue) : timeValue,
+                                value: typeof v === 'string' ? Number(v) : v,
+                            };
+                        })
+                        .filter((r) => {
+                            return r["Time(ms)"] !== undefined && r["Time(ms)"] !== null && !Number.isNaN(r["Time(ms)"]) &&
+                                   r.value !== undefined && r.value !== null && !Number.isNaN(r.value);
+                        });
+
+                    console.log("Normalized data:", normalized.length, "rows"); // Debug log
+                    if (normalized.length > 0) {
+                        console.log("First normalized row:", normalized[0]); // Debug log
+                    }
+                    setData(normalized);
+                },
             });
-            console.log("Parsed rows with time column:", parsed.length); // Debug log
-
-            // Normalize to always provide 'Time(ms)' and 'value' keys for the chart
-            const normalized = parsed
-                .map((row) => {
-                    // Get time value from various possible column names
-                    const timeValue = row["Time(ms)"] ?? row["time"] ?? row["Time"] ?? row["TIME"];
-                    // Get signal value from various possible column names
-                    const v = row.value ?? row.Value ?? row["Lead_I"] ?? row["Lead II"] ?? row["Lead_II"] ?? row["Voltage"] ?? row["ECG"];
-                    return {
-                        "Time(ms)": typeof timeValue === 'string' ? Number(timeValue) : timeValue,
-                        value: typeof v === 'string' ? Number(v) : v,
-                    };
-                })
-                .filter((r) => {
-                    return r["Time(ms)"] !== undefined && r["Time(ms)"] !== null && !Number.isNaN(r["Time(ms)"]) &&
-                           r.value !== undefined && r.value !== null && !Number.isNaN(r.value);
-                });
-
-            console.log("Normalized data:", normalized.length, "rows"); // Debug log
-            if (normalized.length > 0) {
-                console.log("First normalized row:", normalized[0]); // Debug log
-            }
-            setData(normalized);
-        },
-        });
+        } else {
+            // For non-CSV files (JSON, Excel, Text), show a placeholder message
+            // The backend will handle the actual parsing when the file is submitted
+            console.log(`File selected: ${fileName} (${fileExtension.toUpperCase()} format)`);
+            console.log("File will be processed by backend when submitted for prediction.");
+            
+            // Set empty data for non-CSV files since we can't preview them easily
+            // The chart will show a "Upload file to see preview" message
+            setData([]);
+        }
     };
 
     async function sendFile(){
@@ -90,11 +106,11 @@ function InfoContainer({ setData , onPredict}){
                         <input 
                             id="file-input"
                             type="file" 
-                            accept=".csv,.ekg,.txt"
+                            accept=".csv,.json,.xlsx,.xls,.txt,.ekg"
                             className="hidden"
                             onChange={handleFileUpload}
                         />
-                        Choose CSV File
+                        Choose EKG File (CSV, JSON, Excel, Text)
                     </label>
                 </div>              
                 <button className = "h-1/5 w-full border-2 rounded border-blue-600 bg-blue-300 text-blue-600 transition-all duration-300 ease-in-out hover:scale-105 hover:bg-blue-600 hover:text-white"

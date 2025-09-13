@@ -80,7 +80,7 @@ export default function LiveEKG({ rawData }) {
   if (!rawData.length) {
     return (
       <div className="col-span-3 row-span-2 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center bg-gray-800">
-        <p className="text-gray-400">No data yet. Upload a CSV file!</p>
+        <p className="text-gray-400">No data yet. Upload a file (CSV, JSON, Excel, or Text)!</p>
       </div>
     );
   }

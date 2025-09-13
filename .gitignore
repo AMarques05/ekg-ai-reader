@@ -115,6 +115,21 @@ tmp/
 *.ipynb
 .ipynb_checkpoints/
 
+# Test files and demos
+test_*.py
+test_*.csv
+test_*.json
+test_*.xlsx
+test_*.xls
+test_*.txt
+test_*.ekg
+*_test.*
+demo_*.py
+sample_*.py
+create_demo_*.py
+test_multi_format.py
+test_backend.py
+
 # Coverage reports
 htmlcov/
 .coverage
