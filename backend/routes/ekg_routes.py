@@ -135,7 +135,7 @@ def predict():
             return jsonify({"error": "No file provided"}), 400
 
         try:
-            threshold = float(request.args.get("threshold", 0.02))
+            threshold = float(request.args.get("threshold", 0.00012))  # Optimal threshold based on analysis
         except ValueError:
             return jsonify({"error": "Invalid threshold value"}), 400
 

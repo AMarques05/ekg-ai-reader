@@ -3,9 +3,15 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 callbacks = keras.callbacks
+import sys
+from pathlib import Path
+
+# Add the parent directory to the path so we can import from backend
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
 from backend.model.autoencoder import build_autoencoder
 
-def train_autoencoder(X_train, X_val, save_path="backend/models/autoencoder.h5"):
+def train_autoencoder(X_train, X_val, save_path="autoencoder.h5"):
 
     input_len = X_train.shape[1]  # number of samples per window
 
@@ -41,9 +47,16 @@ def train_autoencoder(X_train, X_val, save_path="backend/models/autoencoder.h5")
 
 
 if __name__ == "__main__":
-    # Load datasets relative to the repo root when running: python -m backend.training.train_autoencoder
-    X_train = np.load("backend/data/processed/X_train.npy")
-    X_val   = np.load("backend/data/processed/X_val.npy")
+    # Get paths relative to this script
+    script_dir = Path(__file__).parent
+    data_dir = script_dir.parent / "data" / "processed"
+    
+    # Load datasets
+    X_train = np.load(data_dir / "X_train.npy")
+    X_val   = np.load(data_dir / "X_val.npy")
+
+    # Set save path for the trained model
+    model_save_path = script_dir.parent / "model" / "saved" / "autoencoder.h5"
 
     # Train and save
-    _ = train_autoencoder(X_train, X_val)
+    _ = train_autoencoder(X_train, X_val, save_path=str(model_save_path))

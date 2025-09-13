@@ -130,6 +130,32 @@ create_demo_*.py
 test_multi_format.py
 test_backend.py
 
+# Frontend test files and generated data
+FRONTEND_TEST_*.csv
+FRONTEND_TEST_*.json
+FRONTEND_TEST_*.xlsx
+normal_ekg_*.csv
+normal_ekg_*.json
+normal_ekg_*.xlsx
+abnormal_ekg_*.csv
+abnormal_ekg_*.json
+abnormal_ekg_*.xlsx
+
+# Analysis and utility scripts
+analyze_errors.py
+create_frontend_tests.py
+create_extreme_abnormal.py
+generate_test_data.py
+quick_test_frontend_files.py
+debug_response.py
+test_generated_data.py
+
+# Any generated EKG data files
+*ekg*.csv
+*ekg*.json
+*ekg*.xlsx
+!backend/data/processed/demo_ekg.csv
+
 # Coverage reports
 htmlcov/
 .coverage
