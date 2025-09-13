@@ -149,6 +149,7 @@ generate_test_data.py
 quick_test_frontend_files.py
 debug_response.py
 test_generated_data.py
+backend/evaluate_frontend_tests.py
 
 # Any generated EKG data files
 *ekg*.csv

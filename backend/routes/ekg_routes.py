@@ -17,6 +17,8 @@ bp = Blueprint("ekg", __name__)
 # Lazy-load the trained Keras autoencoder
 _model = None
 _model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model", "saved", "autoencoder.h5")
+_calibration = None
+_calibration_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model", "saved", "calibration.json")
 
 def get_model():
     global _model
@@ -26,6 +28,89 @@ def get_model():
         # Load without compiling to avoid deserializing legacy metrics/loss objects
         _model = load_model(_model_path, compile=False)
     return _model
+
+
+def load_calibration():
+    """Loads hybrid decision thresholds if available."""
+    global _calibration
+    if _calibration is not None:
+        return _calibration
+    if os.path.exists(_calibration_path):
+        try:
+            with open(_calibration_path, "r", encoding="utf-8") as f:
+                _calibration = json.load(f)
+        except Exception:
+            _calibration = None
+    return _calibration
+
+
+def feature_amplitude(sig_filtered: np.ndarray) -> dict:
+    return {
+        "std": float(np.std(sig_filtered)),
+        "ptp": float(np.ptp(sig_filtered)),
+        "mad": float(np.median(np.abs(sig_filtered - np.median(sig_filtered))))
+    }
+
+
+def feature_autocorr_peak(sig: np.ndarray, fs: int = 250, min_bpm: int = 50, max_bpm: int = 150) -> float:
+    x = (sig - np.mean(sig)) / (np.std(sig) + 1e-8)
+    n = len(x)
+    if n < int(fs * 0.6):
+        return 0.0
+    ac = np.correlate(x, x, mode='full')[n-1:]
+    ac /= (ac[0] + 1e-8)
+    min_lag = int(fs * 60.0 / max_bpm)
+    max_lag = int(fs * 60.0 / min_bpm)
+    if max_lag <= min_lag + 1 or max_lag >= len(ac):
+        return 0.0
+    return float(np.max(ac[min_lag:max_lag]))
+
+
+def predict_from_values(values: np.ndarray, threshold: float = 0.00012, use_hybrid: bool = False) -> dict:
+    """Core prediction logic used by the HTTP route and by local evaluators."""
+    fs_in = 250
+    sig, fs = preprocess.resample_to(values, fs_in, 250)
+    sig = preprocess.notch_filter(sig, fs)
+    sig = preprocess.bandpass(sig, fs)
+    sig_filtered = sig.copy()
+    sig = preprocess.standardize(sig)
+    windows = preprocess.make_windows_fixed(sig, fs, win_sec=2.0, step_sec=1.0)
+
+    if windows.size == 0:
+        raise ValueError("Signal too short to form any windows")
+
+    X = windows[..., None]
+    model = get_model()
+    recon = model.predict(X, verbose=0)
+    mse = np.mean((X - recon) ** 2, axis=(1, 2))
+    avg_mse = float(np.mean(mse))
+    result = "normal" if avg_mse <= threshold else "abnormal"
+
+    flags = []
+    if use_hybrid:
+        calib = load_calibration()
+        if calib is not None:
+            fa = feature_amplitude(sig_filtered)
+            acp = feature_autocorr_peak(sig_filtered, fs=fs)
+            amp_out = (fa["std"] < calib.get("amp_std_lo", 0.0) or fa["std"] > calib.get("amp_std_hi", float("inf")) or
+                       fa["ptp"] < calib.get("amp_ptp_lo", 0.0) or fa["ptp"] > calib.get("amp_ptp_hi", float("inf")))
+            irreg = acp < calib.get("ac_peak_lo", 0.0)
+            if amp_out:
+                result = "abnormal"
+                flags.append("AMP")
+            if irreg:
+                result = "abnormal"
+                flags.append("AC")
+
+    return {
+        "result": result,
+        "reconstruction_error": avg_mse,
+        "threshold": threshold,
+        "windows": int(len(mse)),
+        "samples_processed": int(len(values)),
+        "flags": flags,
+        "hybrid": bool(use_hybrid),
+    }
 
 def parse_file_data(file):
     """
@@ -139,6 +224,8 @@ def predict():
         except ValueError:
             return jsonify({"error": "Invalid threshold value"}), 400
 
+        use_hybrid = str(request.args.get("use_hybrid", "false")).lower() in ("1", "true", "yes")
+
         # Parse file data using new multi-format parser
         values, error = parse_file_data(file)
         if error:
@@ -147,35 +234,12 @@ def predict():
         if len(values) < 500:  # Need at least 2 seconds at 250 Hz
             return jsonify({"error": "Signal too short - need at least 500 samples (2 seconds at 250 Hz)"}), 400
 
-        fs_in = 250  
-
-        sig, fs = preprocess.resample_to(values, fs_in, 250)
-        sig = preprocess.notch_filter(sig, fs)
-        sig = preprocess.bandpass(sig, fs)
-        sig = preprocess.standardize(sig)
-        windows = preprocess.make_windows_fixed(sig, fs, win_sec=2.0, step_sec=1.0)
-
-        if windows.size == 0:
-            return jsonify({"error": "Signal too short to form any windows"}), 400
-
-        X = windows[..., None] 
-
-        # Load model and run inference
-        model = get_model()
-        recon = model.predict(X, verbose=0)
-
-        # Compute reconstruction error (MSE) per window and average
-        mse = np.mean((X - recon) ** 2, axis=(1, 2))
-        avg_mse = float(np.mean(mse))
-        result = "normal" if avg_mse <= threshold else "abnormal"
+        # Use shared prediction logic (optionally hybrid)
+        out = predict_from_values(values, threshold=threshold, use_hybrid=use_hybrid)
 
         return jsonify({
-            "result": result,
-            "reconstruction_error": avg_mse,
-            "threshold": threshold,
-            "windows": int(len(mse)),
+            **out,
             "file_format": file.filename.split('.')[-1].upper(),
-            "samples_processed": int(len(values))
         })
     except FileNotFoundError as e:
         return jsonify({"error": str(e)}), 500
